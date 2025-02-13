@@ -8,7 +8,6 @@ class CustomDrawer extends GetView<MyDrawerController> {
   const CustomDrawer({Key? key}) : super(key: key);
 
   @override
-
   Widget build(BuildContext context) {
     return Container(
       width: MediaQuery.of(context).size.width * 0.75, // Limit drawer width
@@ -57,7 +56,7 @@ class CustomDrawer extends GetView<MyDrawerController> {
                   // ✅ Text Converter Button
                   _DrawerButton(
                     icon: Icons.text_fields, // Icon for text conversion
-                    label: 'Text Converter',
+                    label: 'Conveter ',
                     onPressed: () {
                       Get.to(() => const TextConverterPage());
                     },
