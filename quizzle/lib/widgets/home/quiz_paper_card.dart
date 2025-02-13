@@ -1,10 +1,9 @@
-
 import 'package:easy_separator/easy_separator.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 import 'package:quizzle/configs/configs.dart';
 import 'package:quizzle/controllers/controllers.dart';
-import 'package:quizzle/controllers/quiz_paper/quiz_papers_controller.dart';
 import 'package:quizzle/models/quiz_paper_model.dart';
 import 'package:quizzle/screens/screens.dart';
 import 'package:quizzle/widgets/widgets.dart';
@@ -16,7 +15,7 @@ class QuizPaperCard extends GetView<QuizPaperController> {
 
   @override
   Widget build(BuildContext context) {
-    const double _padding = 10.0;
+    const double padding = 10.0;
     return Ink(
       decoration: BoxDecoration(
         borderRadius: UIParameters.cardBorderRadius,
@@ -25,40 +24,36 @@ class QuizPaperCard extends GetView<QuizPaperController> {
       child: InkWell(
         borderRadius: UIParameters.cardBorderRadius,
         onTap: () {
-          controller.navigatoQuestions(
-            paper: model
-          );
+          _showAnimationAndNavigate(context, model);
         },
         child: Padding(
-            padding: const EdgeInsets.all(_padding),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: UIParameters.cardBorderRadius,
-                      child: ColoredBox(
-                          color:
-                              Theme.of(context).primaryColor.withOpacity(0.1),
-                          child: SizedBox(
-                            width: 65,
-                            height: 65,
-                            child: model.imageUrl == null ||  model.imageUrl!.isEmpty ? null : Image.network(model.imageUrl!),
-                          )),
+          padding: const EdgeInsets.all(padding),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Main Row Content
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: UIParameters.cardBorderRadius,
+                    child: ColoredBox(
+                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      child: SizedBox(
+                        width: 65,
+                        height: 65,
+                        child: model.imageUrl == null || model.imageUrl!.isEmpty
+                            ? null
+                            : Image.network(model.imageUrl!),
+                      ),
                     ),
-                    const SizedBox(
-                      width: 12,
-                    ),
-                    Expanded(
-                        child: Column(
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          model.title,
-                          style: cardTitleTs(context),
-                        ),
+                        Text(model.title, style: cardTitleTs(context)),
                         Padding(
                           padding: const EdgeInsets.only(top: 10, bottom: 15),
                           child: Text(model.description),
@@ -72,50 +67,78 @@ class QuizPaperCard extends GetView<QuizPaperController> {
                             },
                             children: [
                               IconWithText(
-                                  icon: Icon(Icons.help_outline_sharp,
-                                      color: Colors.blue[700]),
-                                  text: Text(
-                                    '${model.questionsCount} quizzes',
+                                icon: Icon(Icons.help_outline_sharp,
+                                    color: Colors.blue[700]),
+                                text: Text('${model.questionsCount} quizzes',
                                     style: kDetailsTS.copyWith(
-                                        color: Colors.blue[700]),
-                                  )),
+                                        color: Colors.blue[700])),
+                              ),
                               IconWithText(
-                                  icon: const Icon(Icons.timer,
-                                      color: Colors.blueGrey),
-                                  text: Text(
-                                    model.timeInMinits(),
+                                icon: const Icon(Icons.timer,
+                                    color: Colors.blueGrey),
+                                text: Text(model.timeInMinits(),
                                     style: kDetailsTS.copyWith(
-                                        color: Colors.blueGrey),
-                                  )),
+                                        color: Colors.blueGrey)),
+                              ),
                             ],
                           ),
                         )
                       ],
-                    ))
-                  ],
-                ),
-                Positioned(
-                    bottom: -_padding,
-                    right: -_padding,
-                    child: GestureDetector(
-                      behavior : HitTestBehavior.translucent,
-                      onTap: () {
-                       // Get.find<NotificationService>().showQuizCompletedNotification(id: 1, title: 'Sampole', body: 'Sample', imageUrl: model.imageUrl, payload: json.encode(model.toJson())  );
-                        Get.toNamed(LeaderBoardScreen.routeName, arguments:model );
-                      },
-                      child: Ink(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                        child: const Icon(AppIcons.trophyoutline),
-                        decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(kCardBorderrRadius),
-                                bottomRight:
-                                    Radius.circular(kCardBorderrRadius)),
-                            color: Theme.of(context).primaryColor),
+                    ),
+                  )
+                ],
+              ),
+
+              // LEADERBOARD ICON (TROPHY)
+              Positioned(
+                bottom: -padding,
+                right: -padding,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () {
+                    // Navigate to Leaderboard Screen
+                    Get.toNamed(LeaderBoardScreen.routeName, arguments: model);
+                  },
+                  child: Ink(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 20),
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(kCardBorderrRadius),
+                        bottomRight: Radius.circular(kCardBorderrRadius),
                       ),
-                    ))
-              ],
-            )),
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    child: const Icon(
+                      Icons.emoji_events, // Trophy Icon
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Function to show animation before navigating to quiz
+  void _showAnimationAndNavigate(BuildContext context, QuizPaperModel model) {
+    showDialog(
+      context: context,
+      builder: (_) => Center(
+        child: Lottie.asset(
+          'assets/animations/cat.json',
+          repeat: false,
+          onLoaded: (composition) {
+            Future.delayed(const Duration(seconds: 2), () {
+              Navigator.of(context).pop();
+              Get.find<QuizPaperController>().navigatoQuestions(paper: model);
+            });
+          },
+        ),
       ),
     );
   }

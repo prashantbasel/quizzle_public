@@ -135,6 +135,13 @@ flutter:
     - assets/sounds/correct.mp3
     - assets/sounds/wrong.mp3
     - assets/animations/fire.json
+    - assets/animations/progress_bar_animation.json
+    - assets/animations/achivements.json
+    - assets/animations/cat.json
+    - assets/animations/hurray.json
+    - assets/animations/mistake.json
+    - assets/animations/Streaks-5.json
+    - assets/animations/trofie.json
   fonts:
     - family: AppIcons
       fonts:

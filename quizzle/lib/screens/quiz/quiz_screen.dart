@@ -2,6 +2,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:quizzle/configs/configs.dart';
 import 'package:quizzle/controllers/controllers.dart';
@@ -18,12 +19,19 @@ class QuizeScreen extends StatefulWidget {
   State<QuizeScreen> createState() => _QuizeScreenState();
 }
 
-class _QuizeScreenState extends State<QuizeScreen> {
+class _QuizeScreenState extends State<QuizeScreen>
+    with TickerProviderStateMixin {
   final ConfettiController _confettiController =
       ConfettiController(duration: const Duration(seconds: 2));
   final AudioPlayer audioPlayer = AudioPlayer();
+  late AnimationController _mistakeAnimationController;
+  AnimationController? _hurrayAnimationController; // ✅ Make it nullable
+  bool showHurrayAnimation = false;
+
+  int correctAnswersCount = 0;
   String feedbackMessage = "";
-  Color feedbackColor = const Color.fromARGB(0, 0, 0, 0);
+  Color feedbackColor = Colors.transparent;
+  Color buttonColor = Colors.grey; // Default button color
 
   void playCorrectSound() async {
     await audioPlayer.play(AssetSource('sounds/correct.mp3'));
@@ -34,9 +42,27 @@ class _QuizeScreenState extends State<QuizeScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    _mistakeAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+
+    _hurrayAnimationController = AnimationController(
+      // ✅ Ensure initialization here
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  @override
   void dispose() {
     _confettiController.dispose();
     audioPlayer.dispose();
+    _mistakeAnimationController.dispose();
+    _hurrayAnimationController?.dispose();
     super.dispose();
   }
 
@@ -77,27 +103,21 @@ class _QuizeScreenState extends State<QuizeScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16.0, vertical: 10),
-                      child: Obx(
-                        () {
-                          // ✅ Fix: Prevent division by zero error
-                          double percent = (controller.allQuestions.isNotEmpty)
-                              ? (controller.questionIndex.value + 1) /
-                                  controller.allQuestions.length
-                              : 0.0;
+                      child: Obx(() {
+                        double percent = (controller.allQuestions.isNotEmpty)
+                            ? (controller.questionIndex.value + 1) /
+                                controller.allQuestions.length
+                            : 0.0;
 
-                          return LinearPercentIndicator(
-                            lineHeight: 8.0,
-                            percent:
-                                percent.clamp(0.0, 1.0), // Ensure valid range
-                            backgroundColor: Colors.grey[300]!,
-                            progressColor: Colors.green,
-                            barRadius: const Radius.circular(10),
-                          );
-                        },
-                      ),
+                        return LinearPercentIndicator(
+                          lineHeight: 8.0,
+                          percent: percent.clamp(0.0, 1.0),
+                          backgroundColor: Colors.grey[300]!,
+                          progressColor: Colors.green,
+                          barRadius: const Radius.circular(10),
+                        );
+                      }),
                     ),
-
-                    // ✅ Prevent Bottom Overflow
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.only(top: 20),
@@ -111,10 +131,15 @@ class _QuizeScreenState extends State<QuizeScreen> {
                               ContentArea(
                                 child: Column(
                                   children: [
-                                    Text(
-                                        controller
-                                            .currentQuestion.value!.question,
-                                        style: kQuizeTS),
+                                    AnimatedOpacity(
+                                      duration:
+                                          const Duration(milliseconds: 500),
+                                      opacity: 1.0,
+                                      child: Text(
+                                          controller
+                                              .currentQuestion.value!.question,
+                                          style: kQuizeTS),
+                                    ),
                                     GetBuilder<QuizController>(
                                       id: 'answers_list',
                                       builder: (_) {
@@ -177,11 +202,39 @@ class _QuizeScreenState extends State<QuizeScreen> {
                                                             .play();
                                                         controller
                                                             .increaseScore();
+
                                                         setState(() {
                                                           feedbackMessage =
                                                               "Nicely done!";
                                                           feedbackColor =
                                                               Colors.green;
+                                                          buttonColor =
+                                                              Colors.green;
+
+                                                          correctAnswersCount++; // ✅ Increase correct answer count
+
+                                                          if (correctAnswersCount %
+                                                                  2 ==
+                                                              0) {
+                                                            // ✅ Play hurray animation every 2 correct answers
+                                                            showHurrayAnimation =
+                                                                true; // ✅ Show animation
+                                                            _hurrayAnimationController!
+                                                                .reset();
+                                                            _hurrayAnimationController!
+                                                                .forward();
+
+                                                            // ✅ Hide animation after 1 second
+                                                            Future.delayed(
+                                                                const Duration(
+                                                                    seconds: 1),
+                                                                () {
+                                                              setState(() {
+                                                                showHurrayAnimation =
+                                                                    false; // ✅ Hide animation after 1 sec
+                                                              });
+                                                            });
+                                                          }
                                                         });
                                                       } else {
                                                         playWrongSound();
@@ -190,11 +243,34 @@ class _QuizeScreenState extends State<QuizeScreen> {
                                                               "Incorrect! The correct answer is: ${controller.currentQuestion.value!.correctAnswer}";
                                                           feedbackColor =
                                                               Colors.red;
+                                                          buttonColor = Colors
+                                                              .red; // ✅ Button color for wrong answer
+                                                        });
+
+                                                        _mistakeAnimationController
+                                                            .reset();
+                                                        _mistakeAnimationController
+                                                            .forward();
+
+                                                        // Hide animation & reset color after 2 sec
+                                                        Future.delayed(
+                                                            const Duration(
+                                                                seconds: 2),
+                                                            () {
+                                                          setState(() {
+                                                            feedbackMessage =
+                                                                "";
+                                                            feedbackColor =
+                                                                Colors
+                                                                    .transparent;
+                                                            buttonColor = Colors
+                                                                .grey; // ✅ Reset button color
+                                                          });
                                                         });
                                                       }
                                                     },
                                                     answer:
-                                                        '${answer.identifier}. ${answer.answer}',
+                                                        '${answer.identifier}. ${answer.answer}', // ✅ Ensure this line is correctly formatted
                                                   ),
                                                 );
                                               },
@@ -210,8 +286,6 @@ class _QuizeScreenState extends State<QuizeScreen> {
                         ),
                       ),
                     ),
-
-                    // ✅ Feedback Message (Fixed Overflow Issue)
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       height: feedbackMessage.isNotEmpty ? 60 : 0,
@@ -223,28 +297,12 @@ class _QuizeScreenState extends State<QuizeScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.bold)),
                     ),
-
-                    // ✅ Buttons Section
                     ColoredBox(
                       color: Theme.of(context).scaffoldBackgroundColor,
                       child: Padding(
                         padding: UIParameters.screenPadding,
                         child: Row(
                           children: [
-                            Visibility(
-                              visible: controller.isFirstQuestion,
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 5.0),
-                                child: SizedBox(
-                                  height: 55,
-                                  width: 55,
-                                  child: MainButton(
-                                    onTap: () => controller.prevQuestion(),
-                                    child: const Icon(Icons.arrow_back_ios_new),
-                                  ),
-                                ),
-                              ),
-                            ),
                             Expanded(
                               child: Obx(
                                 () => Visibility(
@@ -253,17 +311,34 @@ class _QuizeScreenState extends State<QuizeScreen> {
                                   child: MainButton(
                                     onTap: () {
                                       setState(() {
-                                        feedbackMessage =
-                                            ""; // Clear feedback before moving to next
+                                        feedbackMessage = "";
                                       });
-                                      controller.isLastQuestion
-                                          ? Get.toNamed(
-                                              QuizOverviewScreen.routeName)
-                                          : controller.nextQuestion();
+
+                                      if (controller.isLastQuestion) {
+                                        // Play achievement animation before navigating
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (context) => Center(
+                                            child: Lottie.asset(
+                                              'assets/animations/achivements.json',
+                                              repeat: false,
+                                              onLoaded: (composition) {
+                                                Future.delayed(
+                                                    composition.duration, () {
+                                                  Get.toNamed(QuizOverviewScreen
+                                                      .routeName);
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        controller.nextQuestion();
+                                      }
                                     },
                                     title: "Next",
-                                    color:
-                                        feedbackColor, // Change button color based on answer
+                                    color: buttonColor,
                                   ),
                                 ),
                               ),
@@ -273,6 +348,35 @@ class _QuizeScreenState extends State<QuizeScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Visibility(
+                visible: feedbackColor ==
+                    Colors.red, // ✅ Show animation only for wrong answers
+                child: Center(
+                  child: Lottie.asset(
+                    'assets/animations/mistake.json',
+                    controller: _mistakeAnimationController,
+                    repeat: false,
+                    onLoaded: (composition) {
+                      _mistakeAnimationController.duration =
+                          composition.duration;
+                    },
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Visibility(
+                visible: showHurrayAnimation, // ✅ Controlled by state
+                child: Center(
+                  child: Lottie.asset(
+                    'assets/animations/hurray.json',
+                    controller: _hurrayAnimationController,
+                    repeat: false,
+                  ),
                 ),
               ),
             ),
